@@ -41,7 +41,6 @@ def transform_data(data):
     df = pd.DataFrame(data_dict)
     return df
 
-# Função que carrega o Dataframe para o banco de dados sqlite3
 def load_data(df):
     conn = sqlite3.connect('weather.db')
     cursor = conn.cursor()
