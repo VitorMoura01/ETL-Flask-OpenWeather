@@ -4,6 +4,7 @@ import requests
 import json
 import sqlite3
 from datetime import datetime
+import pandas as pd
 
 app = Flask(__name__)
 
@@ -25,22 +26,31 @@ def fetch_data():
     return fetched_data
 
 def transform_data(data):
+    data = [json.dumps(item) for item in data] #transfoma a lista em JSON object
+
     ingestion_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     data_type = "weather"
     usage = "previsão do tempo"
-    # values = [data['main'][city] for city in cities]
 
-    transformed_data = {'ingestion_date': ingestion_date * len(data), 'data_type': data_type * len(data), 'values': json.dumps(values), 'usage': usage}
-    return transformed_data
+    data_dict = {
+        'ingestion_date': [ingestion_date] * len(data),
+        'usage': [usage] * len(data),
+        'data_type': [f"{data_type} of: {city}" for city in cities],
+        'data_values': data
+    }
+    df = pd.DataFrame(data_dict)
+    return df
 
-def load_data(transformed_data):
+# Função que carrega o Dataframe para o banco de dados sqlite3
+def load_data(df):
     conn = sqlite3.connect('weather.db')
     cursor = conn.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS weather_data
-                 (ingestion_date text, data_type text, values text, usage text)''')
-    cursor.execute("INSERT INTO weather_data VALUES (?, ?, ?, ?)", transformed_data)
+
+    df.to_sql('weather_data', conn, if_exists='append', index=False)
+
     conn.commit()
     conn.close()
+
 
 @app.route('/')
 def get():
@@ -51,8 +61,15 @@ def get():
 def etl():
     data = get()
     transformed_data = transform_data(data)
-    # load_data(transformed_data)
-    return transformed_data
+    load_data(transformed_data)
+
+    conn = sqlite3.connect('weather.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM weather_data")
+    resultado = jsonify(cursor.fetchall())
+    conn.close()
+
+    return resultado
 
 if __name__ == '__main__':
     app.run(debug=True)
