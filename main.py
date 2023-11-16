@@ -26,7 +26,7 @@ def fetch_data():
     return fetched_data
 
 def transform_data(data):
-    data = [json.dumps(item) for item in data] #transfoma a lista em JSON object
+    data = [json.dumps(item) for item in data] #transforma a lista em JSON object
 
     ingestion_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     data_type = "weather"
